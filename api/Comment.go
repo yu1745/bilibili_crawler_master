@@ -65,11 +65,11 @@ func RootComment(c *gin.Context) {
 		}
 		db.Db.Create(&cmts)
 		//处理user
-		for _, v := range cmt.Data.Replies {
+		/*for _, v := range cmt.Data.Replies {
 			t := &model.Task{
 				TaskType: model.GetVideoFromUp,
 			}
-		}
+		}*/
 	} else {
 		log.Println("ip blocked")
 	}

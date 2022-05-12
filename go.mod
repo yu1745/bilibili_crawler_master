@@ -1,4 +1,4 @@
-module master
+module bilibili_crawler_master
 
 go 1.18
 
