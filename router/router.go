@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/yu1745/bilibili_crawler_master/api"
 	"log"
-	"master/api"
 )
 
 func Init() {

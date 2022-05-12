@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"master/queue"
+	"github.com/yu1745/bilibili_crawler_master/queue"
 )
 
 func PutQueue(c *gin.Context) {

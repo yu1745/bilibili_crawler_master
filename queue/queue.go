@@ -1,8 +1,8 @@
 package queue
 
 import (
+	"github.com/yu1745/bilibili_crawler_master/util"
 	"log"
-	"master/util"
 )
 
 var Q *util.DurableQueue
