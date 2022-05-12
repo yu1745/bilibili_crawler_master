@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -22,14 +23,16 @@ var wg sync.WaitGroup
 var cancelFunc context.CancelFunc
 
 func init() {
+	//处理ctrl+c
 	go func() {
 		ch := make(chan os.Signal)
-		signal.Notify(ch, os.Interrupt)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 		<-ch
 		cancelFunc()
+		time.Sleep(time.Second * 5)
+		os.Exit(0)
 	}()
-	time.Sleep(time.Second * 5)
-	os.Exit(0)
+
 }
 
 func main() {

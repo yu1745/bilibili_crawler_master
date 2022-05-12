@@ -65,11 +65,17 @@ func RootComment(c *gin.Context) {
 		}
 		db.Db.Create(&cmts)
 		//处理user
-		/*for _, v := range cmt.Data.Replies {
-			t := &model.Task{
+		for _, v := range cmt.Data.Replies {
+			u, _ := url.Parse("http://api.bilibili.com/x/space/arc/search?order=pubdate&pn=1&ps=50")
+			q := u.Query()
+			q.Set("mid", strconv.Itoa(v.Mid))
+			u.RawQuery = q.Encode()
+			b, _ := json.Marshal(&model.Task{
 				TaskType: model.GetVideoFromUp,
-			}
-		}*/
+				Payload:  u.String(),
+			})
+			queue.Q.Offer(b)
+		}
 	} else {
 		log.Println("ip blocked")
 	}
