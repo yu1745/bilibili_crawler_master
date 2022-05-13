@@ -14,4 +14,5 @@ type Video struct {
 			Count int `json:"count"`
 		} `json:"page"`
 	} `json:"data"`
+	Mid int `json:"mid"`
 }
