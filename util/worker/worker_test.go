@@ -25,7 +25,7 @@ func TestGetALlUrls(t *testing.T) {
 }
 
 func TestCreateWorker(t *testing.T) {
-	PutCode("/tmp/function2.zip", "function.zip")
+	PutCode("/tmp/function.zip", "function.zip")
 	err := CreateWorker("test")
 	if err != nil {
 		t.Error(err)

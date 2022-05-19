@@ -1,13 +1,11 @@
 package main
 
+import (
+	"github.com/yu1745/bilibili_crawler_master/router"
+	"time"
+)
+
 func main() {
-	/*r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-
-	})
-	go func() {
-
-	}()
-	r.Run(":80")*/
-
+	router.Init()
+	time.Sleep(time.Hour)
 }

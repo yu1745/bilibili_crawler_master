@@ -28,17 +28,18 @@ func init() {
 		ch := make(chan os.Signal)
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 		<-ch
-		cancelFunc()
-		time.Sleep(time.Second * 5)
+		println("!!!!!!!!!!!!!!!!!!!!")
+		if cancelFunc != nil {
+			cancelFunc()
+			time.Sleep(time.Second * 5)
+		}
 		os.Exit(0)
 	}()
-
 }
 
 func main() {
 	worker.Init()
 	go router.Init()
-	//time.Sleep(time.Hour)
 	ctx, cancelFunc_ := context.WithCancel(context.Background())
 	for _, v := range worker.Urls {
 		cancelFunc = cancelFunc_
@@ -46,6 +47,7 @@ func main() {
 		go process(v, ctx)
 	}
 	wg.Wait()
+
 }
 
 func process(v string, ctx context.Context) {
@@ -68,6 +70,7 @@ func process(v string, ctx context.Context) {
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Println(err)
+				log.Println("重建worker")
 				//重建worker
 				err := worker.RemoveWorker(v)
 				if err != nil {
@@ -90,6 +93,7 @@ func process(v string, ctx context.Context) {
 			all, _ := ioutil.ReadAll(resp.Body)
 			if len(all) > 0 {
 				//重建worker
+				log.Println("重建worker")
 				err := worker.RemoveWorker(v)
 				if err != nil {
 					log.Fatalln(err)
@@ -108,6 +112,7 @@ func process(v string, ctx context.Context) {
 				go process(u, ctx)
 				return
 			}
+			log.Println(string(all))
 		}
 	}
 }

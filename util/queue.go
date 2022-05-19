@@ -2,12 +2,12 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"log"
 	"os"
 	"strconv"
-	"sync"
 	"syscall"
 )
 
@@ -26,63 +26,97 @@ type index struct {
 }
 
 type DurableQueue struct {
-	//c            chan []byte
-	name         string
-	meta         []byte
-	curRead      []byte
-	curWrite     []byte
-	consumer     index
-	producer     index
-	writeLock    sync.Mutex
-	readLock     sync.Mutex
+	readCh     chan []byte
+	writeCh    chan []byte
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	name       string
+	meta       []byte
+	curRead    []byte
+	curWrite   []byte
+	consumer   index
+	producer   index
+	//writeLock    *sync.Mutex
+	//readLock     *sync.Mutex
 	producerFile *os.File
 	consumerFile *os.File
 }
 
 func (d *DurableQueue) Poll() (rt []byte, err error) {
-	d.readLock.Lock()
-	defer d.readLock.Unlock()
-	if d.checkForConsumer() {
-		var l uint32
-		buffer := bytes.NewBuffer(d.curRead[d.consumer.b:])
-		err := binary.Read(buffer, binary.BigEndian, &l)
-		if err != nil {
-			log.Printf("read data block %d error at %d", d.consumer.a, d.consumer.b)
-			log.Fatalln(err)
-		}
-		rt = make([]byte, l)
-		copy(rt, d.curRead[d.consumer.b+4:])
-		d.consumer.b += 4 + l
-		d.setConsumerIndex()
-	} else {
-		err = errors.New("temporally nothing new")
+	select {
+	case rt = <-d.readCh:
+	default:
+	}
+	if len(rt) == 0 {
+		err = errors.New("")
 	}
 	return
 }
 
+func (d *DurableQueue) poll() {
+	//d.readLock.Lock()
+	//defer d.readLock.Unlock()
+	for {
+		select {
+		case <-d.ctx.Done():
+			return
+		default:
+			//返回任务之后再移动index
+			if d.checkForConsumer() {
+				var l uint32
+				buffer := bytes.NewBuffer(d.curRead[d.consumer.b:])
+				err := binary.Read(buffer, binary.BigEndian, &l)
+				if err != nil {
+					log.Printf("read data block %d error at %d", d.consumer.a, d.consumer.b)
+					log.Fatalln(err)
+				}
+				rt := make([]byte, l)
+				copy(rt, d.curRead[d.consumer.b+4:])
+				d.consumer.b += 4 + l
+				d.readCh <- rt
+				d.setConsumerIndex()
+			} else {
+				//err = errors.New("temporally nothing new")
+				//暂时没有新的task
+			}
+		}
+	}
+}
+
 func (d *DurableQueue) Offer(b []byte) {
-	if len(b) == 0 {
-		return
+	d.writeCh <- b
+}
+
+func (d *DurableQueue) offer() {
+	for {
+		select {
+		case <-d.ctx.Done():
+			return
+		case b := <-d.writeCh:
+			if len(b) == 0 {
+				continue
+			}
+			//d.writeLock.Lock()
+			//defer d.writeLock.Unlock()
+			d.checkForProducer(b)
+			l := uint32(len(b))
+			var buffer bytes.Buffer
+			//d.curWrite[d.producer.b:]
+			err := binary.Write(&buffer, binary.BigEndian, l)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			temp := buffer.Bytes()
+			//println(len(temp))
+			//先写内容再写长度 避免消费者读取到不完整消息
+			copy(d.curWrite[d.producer.b+4:], b)
+			copy(d.curWrite[d.producer.b:], temp)
+			//buffer.Write(b)
+			d.producer.b += 4 + l
+			d.setProducerIndex()
+			//fmt.Printf("%x\n", d.getProducerIndex())
+		}
 	}
-	d.writeLock.Lock()
-	defer d.writeLock.Unlock()
-	d.checkForProducer(b)
-	l := uint32(len(b))
-	var buffer bytes.Buffer
-	//d.curWrite[d.producer.b:]
-	err := binary.Write(&buffer, binary.BigEndian, l)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	temp := buffer.Bytes()
-	//println(len(temp))
-	//先写内容再写长度 避免消费者读取到不完整消息
-	copy(d.curWrite[d.producer.b+4:], b)
-	copy(d.curWrite[d.producer.b:], temp)
-	//buffer.Write(b)
-	d.producer.b += 4 + l
-	d.setProducerIndex()
-	//fmt.Printf("%x\n", d.getProducerIndex())
 }
 
 func (d *DurableQueue) load() error {
@@ -127,6 +161,10 @@ func (d *DurableQueue) Test() {
 	//d.meta[100] = 'n'
 }
 
+func (d *DurableQueue) Stop() {
+
+}
+
 func (d *DurableQueue) getConsumerIndex() index {
 	buffer := bytes.NewBuffer(d.meta)
 	var a uint16
@@ -149,6 +187,8 @@ func (d *DurableQueue) setConsumerIndex() {
 	var buffer bytes.Buffer
 	_ = binary.Write(&buffer, binary.BigEndian, d.consumer.a)
 	_ = binary.Write(&buffer, binary.BigEndian, d.consumer.b)
+	//d.readLock.Lock()
+	//defer d.readLock.Unlock()
 	copy(d.meta, buffer.Bytes())
 }
 
@@ -156,6 +196,8 @@ func (d *DurableQueue) setProducerIndex() {
 	var buffer bytes.Buffer
 	_ = binary.Write(&buffer, binary.BigEndian, d.producer.a)
 	_ = binary.Write(&buffer, binary.BigEndian, d.producer.b)
+	//d.writeLock.Lock()
+	//defer d.writeLock.Unlock()
 	copy(d.meta[6:], buffer.Bytes())
 }
 
@@ -307,21 +349,22 @@ func (d *DurableQueue) deleteOutdated() {
 	}
 }
 
-type Queue interface {
-	Poll() []byte
-	Offer([]byte)
-}
-
 func NewQueue(name string) (*DurableQueue, error) {
 	q := &DurableQueue{
-		//c:    make(chan []byte),
-		name: name,
+		readCh:  make(chan []byte),
+		writeCh: make(chan []byte),
+		name:    name,
+		//readLock:  &sync.Mutex{},
+		//writeLock: &sync.Mutex{},
 	}
+	q.ctx, q.cancelFunc = context.WithCancel(context.Background())
 	if err := q.load(); err != nil {
 		return nil, err
 	}
 	/*	a, b := q.getProducerIndex()
 		println(a)
 		println(b)*/
+	go q.offer()
+	go q.poll()
 	return q, nil
 }

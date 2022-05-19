@@ -1,10 +1,10 @@
 package worker
 
 import (
+	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/google/uuid"
 	"github.com/yu1745/bilibili_crawler_master/util"
@@ -16,9 +16,11 @@ import (
 
 var lbd *lambda.Lambda
 var Urls []string
-var useS3 = false
+
+//var useS3 = false
 var s3uploader *s3manager.Uploader
-var s3c *s3.S3
+
+//var s3c *s3.S3
 
 func init() {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -29,7 +31,7 @@ func init() {
 	lbd = lambda.New(sess, config)
 	//s3c = s3.Add(sess, config)
 	s3uploader = s3manager.NewUploader(sess2)
-	s3c = s3.New(sess2)
+	//s3c = s3.New(sess2)
 }
 
 func GetAllNames() ([]string, error) {
@@ -53,7 +55,10 @@ func GetALlUrls() ([]string, error) {
 	var urls []string
 	ch := make(chan string)
 	for _, v := range names {
+		limit := util.NewGoLimit(5)
 		go func(v string) {
+			limit.Add()
+			defer limit.Done()
 			configs, err := lbd.ListFunctionUrlConfigs(&lambda.ListFunctionUrlConfigsInput{FunctionName: &v})
 			if err != nil {
 				log.Println(err)
@@ -220,9 +225,18 @@ func Init() {
 		}
 		wg.Wait()
 	}
-	Urls, err = GetALlUrls()
+	bytes, err := os.ReadFile("/tmp/urls")
 	if err != nil {
-		log.Fatalln(err)
+		bytes = make([]byte, 0)
+	}
+	_ = json.Unmarshal(bytes, &Urls)
+	if len(Urls) == 0 {
+		Urls, err = GetALlUrls()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		marshal, _ := json.Marshal(&Urls)
+		_ = os.WriteFile("/tmp/urls", marshal, 0644)
 	}
 	for _, v := range Urls {
 		log.Println(v)
