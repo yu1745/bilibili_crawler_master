@@ -24,6 +24,10 @@ var wg sync.WaitGroup
 var cancelFunc context.CancelFunc
 
 func init() {
+
+}
+
+func main() {
 	//处理ctrl+c
 	go func() {
 		ch := make(chan os.Signal)
@@ -36,11 +40,9 @@ func init() {
 		}
 		os.Exit(0)
 	}()
-}
-
-func main() {
 	go db.Init()
 	go router.Init()
+	queue.Init()
 	worker.Init()
 	ctx, cancelFunc_ := context.WithCancel(context.Background())
 	for _, v := range worker.Urls {

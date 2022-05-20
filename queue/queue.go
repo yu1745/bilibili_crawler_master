@@ -7,7 +7,7 @@ import (
 
 var Q *util.DurableQueue
 
-func init() {
+func Init() {
 	var err error
 	Q, err = util.NewQueue("nmsl")
 	if err != nil {
