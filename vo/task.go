@@ -2,17 +2,17 @@ package vo
 
 import "encoding/base64"
 
-type taskType int
+type TaskType int
 
 const (
-	GetCommentsFromVideo taskType = iota
+	GetCommentsFromVideo TaskType = iota
 	GetVideoFromUp
 	//GetFollowers //主要通过视频抓取评论，非up爬了也没用
 	GetSubscribers
 )
 
 type Task struct {
-	TaskType taskType `json:"TaskType"`
+	TaskType TaskType `json:"TaskType"`
 	Payload  string   `json:"Payload"`
 }
 

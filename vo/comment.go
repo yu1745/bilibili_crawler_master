@@ -34,7 +34,7 @@ type Comment struct {
 	MidAndTask
 }
 
-func (this *Comment) NextTask() {
+func (this *Comment) Next() []byte {
 	u, err := url.Parse(this.Task.Payload)
 	if err != nil {
 		log.Println(err)
@@ -48,6 +48,7 @@ func (this *Comment) NextTask() {
 		log.Println(err)
 	}
 	queue.Q.Offer(b)
+	return b
 }
 
 func (this *Comment) HasNextPage() bool {

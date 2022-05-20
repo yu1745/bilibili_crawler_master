@@ -8,6 +8,6 @@ type MidAndTask struct {
 
 type Paged interface {
 	HasNextPage() bool
-	NextTask()
+	Next() []byte
 	Store()
 }

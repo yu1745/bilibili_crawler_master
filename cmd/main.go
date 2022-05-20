@@ -47,7 +47,6 @@ func main() {
 		go process(v, ctx)
 	}
 	wg.Wait()
-
 }
 
 func process(v string, ctx context.Context) {
@@ -69,7 +68,9 @@ func process(v string, ctx context.Context) {
 			req.Header.Set("Content-Type", "application/json")
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
+				//log.Println("resp, err := http.DefaultClient.Do(req)!=nil")
 				log.Println(err)
+				return
 				log.Println("重建worker")
 				//重建worker
 				err := worker.RemoveWorker(v)
@@ -93,6 +94,8 @@ func process(v string, ctx context.Context) {
 			all, _ := ioutil.ReadAll(resp.Body)
 			if len(all) > 0 {
 				//重建worker
+				log.Println(string(all))
+				return
 				log.Println("重建worker")
 				err := worker.RemoveWorker(v)
 				if err != nil {

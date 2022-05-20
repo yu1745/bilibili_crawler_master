@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/yu1745/bilibili_crawler_master/vo"
 	"log"
@@ -11,6 +12,10 @@ func RootComment(c *gin.Context) {
 	if err := c.ShouldBind(&cmt); err != nil {
 		log.Println(err)
 	}
+
+	marshal, _ := json.Marshal(&cmt)
+	println(string(marshal))
+
 	if cmt.Code == 0 {
 		if len(cmt.Data.Replies) == 0 {
 			return
@@ -50,7 +55,7 @@ func RootComment(c *gin.Context) {
 		db.Db.Create(&cmts)*/
 		cmt.Store()
 		if cmt.HasNextPage() {
-			cmt.NextTask()
+			cmt.Next()
 		}
 		//处理user
 		/*for _, v := range cmt.Data.Replies {
