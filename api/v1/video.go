@@ -31,8 +31,8 @@ func Video(c *gin.Context) {
 			q.Set("mid", strconv.Itoa(vs.Mid))
 			q.Set("pn", strconv.Itoa(pageNum))
 			u.RawQuery = q.Encode()
-			b, _ := json.Marshal(model.Task{
-				TaskType: model.GetVideoFromUp,
+			b, _ := json.Marshal(vo.Task{
+				TaskType: vo.GetVideoFromUp,
 				Payload:  u.String(),
 			})
 			queue.Q.Offer(b)

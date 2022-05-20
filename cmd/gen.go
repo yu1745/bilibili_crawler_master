@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	db, err := gorm.Open(mysql.Open("root:asdk7788AA@tcp(192.168.187.1)/bilibili?parseTime=True&loc=Local"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:asdk7788AA@tcp(127.0.0.1)/bilibili?parseTime=True&loc=Local"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

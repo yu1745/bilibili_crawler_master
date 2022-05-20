@@ -80,4 +80,12 @@ func (this *Comment) Store() {
 	if int(d.RowsAffected) != len(this.Data.Replies) {
 		this.hasNext = -1
 	}
+	var ups []model.Up
+	for _, v := range this.Data.Replies {
+		ups = append(ups, model.Up{
+			UID:         v.Mid,
+			LastScanned: time.Unix(0, 0),
+		})
+	}
+	db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
 }
