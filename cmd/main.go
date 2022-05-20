@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/google/uuid"
+	"github.com/yu1745/bilibili_crawler_master/db"
 	"github.com/yu1745/bilibili_crawler_master/queue"
 	"github.com/yu1745/bilibili_crawler_master/router"
 	"github.com/yu1745/bilibili_crawler_master/util/worker"
@@ -38,8 +39,9 @@ func init() {
 }
 
 func main() {
-	worker.Init()
+	go db.Init()
 	go router.Init()
+	worker.Init()
 	ctx, cancelFunc_ := context.WithCancel(context.Background())
 	for _, v := range worker.Urls {
 		cancelFunc = cancelFunc_

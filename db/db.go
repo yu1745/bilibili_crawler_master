@@ -8,7 +8,7 @@ import (
 
 var Db *gorm.DB
 
-func init() {
+func Init() {
 	var err error
 	Db, err = gorm.Open(mysql.Open("root:asdk7788AA@tcp(127.0.0.1)/bilibili?parseTime=True&loc=Local"), &gorm.Config{
 		//SkipDefaultTransaction: true,
