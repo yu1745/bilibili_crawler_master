@@ -1,9 +1,11 @@
 package vo
 
 type MidAndTask struct {
-	Mid     int  `json:"mid"`
-	Task    Task `json:"task"`
-	hasNext int  //-1就是插入发生重复
+	// 目标id
+	Mid  int  `json:"mid"`
+	Task Task `json:"task"`
+	//-1的意思是插入发生重复
+	hasNext int
 }
 
 type Paged interface {

@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestGetALlUrls(t *testing.T) {
 		t.Error(err)
 	}
 	for _, v := range urls {
-		println(v)
+		fmt.Printf("%+v", v)
 	}
 }
 
@@ -53,4 +54,16 @@ func TestPutCode(t *testing.T) {
 func TestGetFunctionUrl(t *testing.T) {
 	url := GetFunctionUrl("test")
 	println(url)
+}
+
+func TestInvoke(t *testing.T) {
+	s := `{
+  "TaskType": 0,
+  "Payload": "http://api.bilibili.com/x/v2/reply?type=1&oid=2&ps=49&pn=10&nohot=1"
+}`
+	invoke, err := Invoke("test", []byte(s))
+	if err != nil {
+		t.Error(err)
+	}
+	println(string(invoke))
 }

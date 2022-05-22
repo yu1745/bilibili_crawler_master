@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -15,7 +14,12 @@ import (
 )
 
 var lbd *lambda.Lambda
-var Urls []string
+var Workers []Worker
+
+type Worker struct {
+	Name string
+	Url  string
+}
 
 //var useS3 = false
 var s3uploader *s3manager.Uploader
@@ -47,32 +51,21 @@ func GetAllNames() ([]string, error) {
 	return names, nil
 }
 
-func GetALlUrls() ([]string, error) {
+func GetALlUrls() ([]Worker, error) {
 	names, err := GetAllNames()
 	if err != nil {
 		return nil, err
 	}
-	var urls []string
-	ch := make(chan string)
+	var urls []Worker
 	for _, v := range names {
-		limit := util.NewGoLimit(5)
-		go func(v string) {
-			limit.Add()
-			defer limit.Done()
-			configs, err := lbd.ListFunctionUrlConfigs(&lambda.ListFunctionUrlConfigsInput{FunctionName: &v})
-			if err != nil {
-				log.Println(err)
-				ch <- ""
-				return
-			}
-			ch <- *configs.FunctionUrlConfigs[0].FunctionUrl
-			//fmt.Printf("%+v\n", configs.FunctionUrlConfigs[0])
-		}(v)
-	}
-	for range names {
-		if s := <-ch; s != "" {
-			urls = append(urls, s)
+		configs, err := lbd.ListFunctionUrlConfigs(&lambda.ListFunctionUrlConfigsInput{FunctionName: &v})
+		if err != nil {
+			log.Println(err)
 		}
+		urls = append(urls, Worker{
+			Name: v,
+			Url:  *configs.FunctionUrlConfigs[0].FunctionUrl,
+		})
 	}
 	return urls, nil
 }
@@ -95,7 +88,7 @@ func CreateWorker(name string) error {
 	if err != nil {
 		return err
 	}
-	NONE := "NONE"
+	/*NONE := "NONE"
 	input2 := &lambda.CreateFunctionUrlConfigInput{
 		AuthType:     &NONE,
 		FunctionName: &name,
@@ -119,20 +112,20 @@ func CreateWorker(name string) error {
 	_, err = lbd.AddPermission(input3)
 	if err != nil {
 		return err
-	}
+	}*/
 	return nil
 }
 
 func RemoveWorker(name string) error {
-	urlInput := &lambda.DeleteFunctionUrlConfigInput{FunctionName: &name}
+	/*urlInput := &lambda.DeleteFunctionUrlConfigInput{FunctionName: &name}
 	_, err := lbd.DeleteFunctionUrlConfig(urlInput)
 	if err != nil {
 		return err
-	}
+	}*/
 	delInput := &lambda.DeleteFunctionInput{
 		FunctionName: &name,
 	}
-	_, err = lbd.DeleteFunction(delInput)
+	_, err := lbd.DeleteFunction(delInput)
 	if err != nil {
 		return err
 	}
@@ -170,6 +163,17 @@ func GetFunctionUrl(v string) string {
 	return *config.FunctionUrl
 }
 
+func Invoke(name string, payload []byte) ([]byte, error) {
+	output, err := lbd.Invoke(&lambda.InvokeInput{
+		FunctionName: aws.String(name),
+		Payload:      payload,
+	})
+	if output.FunctionError != nil {
+		println(*output.FunctionError)
+	}
+	return output.Payload, err
+}
+
 func PutCode(s, k string) {
 	/*_, err := s3c.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String("wangyu-code"),
@@ -192,7 +196,7 @@ func PutCode(s, k string) {
 	}
 }
 
-func Init() {
+func Init(num int) {
 	names, err := GetAllNames()
 	if err != nil {
 		log.Fatalln(err)
@@ -203,11 +207,11 @@ func Init() {
 			i--
 		}
 	}
-	if len(names) < 25 {
+	if len(names) < num {
 		PutCode("/tmp/function.zip", "function.zip")
 		var wg sync.WaitGroup
 		lm := util.NewGoLimit(5)
-		for i := 0; i < 50-len(names); i++ {
+		for i := 0; i < num-len(names); i++ {
 			wg.Add(1)
 			go func() {
 				lm.Add()
@@ -225,20 +229,27 @@ func Init() {
 		}
 		wg.Wait()
 	}
-	bytes, err := os.ReadFile("/tmp/urls")
+	/*bytes, err := os.ReadFile("/tmp/names")
 	if err != nil {
 		bytes = make([]byte, 0)
 	}
-	_ = json.Unmarshal(bytes, &Urls)
-	if len(Urls) == 0 {
-		Urls, err = GetALlUrls()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		marshal, _ := json.Marshal(&Urls)
-		_ = os.WriteFile("/tmp/urls", marshal, 0644)
+	_ = json.Unmarshal(bytes, &Workers)*/
+	//if len(Workers) == 0 {
+	/*Workers, err = GetALlUrls()
+	if err != nil {
+		log.Fatalln(err)
+	}*/
+	allNames, err := GetAllNames()
+	if err != nil {
+		log.Fatalln(err)
 	}
-	for _, v := range Urls {
-		log.Println(v)
+	for _, v := range allNames {
+		Workers = append(Workers, Worker{Name: v})
+	}
+	//marshal, _ := json.Marshal(&Workers)
+	//_ = os.WriteFile("/tmp/names", marshal, 0644)
+	//}
+	for _, v := range Workers {
+		log.Println(v.Name)
 	}
 }

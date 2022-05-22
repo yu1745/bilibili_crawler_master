@@ -1,6 +1,7 @@
 package vo
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/yu1745/bilibili_crawler_master/db"
 	"github.com/yu1745/bilibili_crawler_master/model"
@@ -40,13 +41,18 @@ func (this *Comment) Next() []byte {
 		log.Println(err)
 	}
 	q := u.Query()
-	q.Set("pn", strconv.Itoa(this.Data.Page.Count+1))
+	q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
+	log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
 	u.RawQuery = q.Encode()
 	this.Task.Payload = u.String()
-	b, err := json.Marshal(&this.Task)
+	var buf bytes.Buffer
+	e := json.NewEncoder(&buf)
+	e.SetEscapeHTML(false)
+	err = e.Encode(&this.Task)
 	if err != nil {
 		log.Println(err)
 	}
+	b := buf.Bytes()
 	queue.Q.Offer(b)
 	return b
 }
@@ -80,12 +86,13 @@ func (this *Comment) Store() {
 	d := db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
 	if int(d.RowsAffected) != len(this.Data.Replies) {
 		this.hasNext = -1
+		log.Println("insert conflict")
 	}
 	var ups []model.Up
 	for _, v := range this.Data.Replies {
 		ups = append(ups, model.Up{
 			UID:         v.Mid,
-			LastScanned: time.Unix(0, 0),
+			LastScanned: time.Unix(946656000, 0),
 		})
 	}
 	db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)

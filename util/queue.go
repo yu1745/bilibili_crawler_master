@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"syscall"
+	"time"
 )
 
 const (
@@ -47,7 +48,7 @@ func (d *DurableQueue) Poll() (rt []byte, err error) {
 	case rt = <-d.readCh:
 	default:
 	}
-	if len(rt) == 0 {
+	if rt == nil || len(rt) == 0 {
 		err = errors.New("")
 	}
 	return
@@ -61,7 +62,6 @@ func (d *DurableQueue) poll() {
 		case <-d.ctx.Done():
 			return
 		default:
-			//返回任务之后再移动index
 			if d.checkForConsumer() {
 				var l uint32
 				buffer := bytes.NewBuffer(d.curRead[d.consumer.b:])
@@ -74,10 +74,11 @@ func (d *DurableQueue) poll() {
 				copy(rt, d.curRead[d.consumer.b+4:])
 				d.consumer.b += 4 + l
 				d.readCh <- rt
+				//返回任务之后再移动index
 				d.setConsumerIndex()
 			} else {
-				//err = errors.New("temporally nothing new")
 				//暂时没有新的task
+				time.Sleep(time.Millisecond * 10)
 			}
 		}
 	}

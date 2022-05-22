@@ -12,8 +12,8 @@ func Init() {
 	r.GET("/ping", func(c *gin.Context) {
 		_, _ = c.Writer.Write([]byte("pong\n"))
 	})
-	r.PUT("/comment", v1.RootComment)
-	r.PUT("/video", v1.Video)
+	//r.PUT("/comment", v1.RootComment)
+	//r.PUT("/video", v1.Video)
 	/*r.GET("/", func(c *gin.Context) {
 		c.JSON(0, "done")
 	})
@@ -22,8 +22,9 @@ func Init() {
 		log.Fatalln(err)
 	}*/
 	r.PUT("/q", v1.PutQueue)
-	r.GET("/q", v1.GetQueue)
-	err := r.RunTLS(":8443", "/root/fullchain.pem", "/root/privkey.pem")
+	//r.GET("/q", v1.GetQueue)
+	//err := r.RunTLS(":8443", "/root/fullchain.pem", "/root/privkey.pem")
+	err := r.Run(":80")
 	if err != nil {
 		log.Fatalln(err)
 	}

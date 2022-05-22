@@ -16,5 +16,5 @@ func Init() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	Db.Logger = logger.Default.LogMode(logger.Info)
+	Db.Logger = logger.Default.LogMode(logger.Error)
 }
