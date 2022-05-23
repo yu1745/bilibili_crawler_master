@@ -5,7 +5,7 @@ type MidAndTask struct {
 	Mid  int  `json:"mid"`
 	Task Task `json:"task"`
 	//-1的意思是插入发生重复
-	hasNext int
+	HasNext int
 }
 
 type Paged interface {

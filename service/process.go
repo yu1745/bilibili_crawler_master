@@ -35,7 +35,7 @@ func Process(v worker.Worker, ctx context.Context) {
 			_ = json.Unmarshal(poll, &task)
 			switch task.TaskType {
 			case vo.GetCommentsFromVideo:
-				var cmt vo.Comment
+				var cmt vo.MainComment
 				err = json.Unmarshal([]byte(unquote), &cmt)
 				if err != nil {
 					log.Fatalln(err)

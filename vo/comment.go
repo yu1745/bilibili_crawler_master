@@ -8,12 +8,13 @@ import (
 	"github.com/yu1745/bilibili_crawler_master/queue"
 	"gorm.io/gorm/clause"
 	"log"
+	"math"
 	"net/url"
 	"strconv"
 	"time"
 )
 
-type Comment struct {
+type MainComment struct {
 	Code int `json:"code"`
 	Data struct {
 		Page struct {
@@ -35,43 +36,85 @@ type Comment struct {
 	MidAndTask
 }
 
-func (this *Comment) Next() []byte {
-	u, err := url.Parse(this.Task.Payload)
-	if err != nil {
-		log.Println(err)
+func (this *MainComment) Next() {
+	if this.Task.New && this.Data.Page.Num == 1 {
+		//没扫过，直接并行生成
+		var pageNum int
+		if this.Data.Page.Count%this.Data.Page.Size == 0 {
+			pageNum = this.Data.Page.Count / this.Data.Page.Size
+		} else {
+			pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
+		}
+		for i := 2; i < pageNum; i++ {
+			u, err := url.Parse(this.Task.Payload)
+			if err != nil {
+				log.Println(err)
+			}
+			q := u.Query()
+			q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
+			log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
+			u.RawQuery = q.Encode()
+			this.Task.Payload = u.String()
+			this.Task.New = false
+			//批量生成的任务，不用检验是否有下一页
+			this.HasNext = -1
+			var buf bytes.Buffer
+			e := json.NewEncoder(&buf)
+			e.SetEscapeHTML(false)
+			err = e.Encode(&this.Task)
+			if err != nil {
+				log.Println(err)
+			}
+			b := buf.Bytes()
+			queue.Q.Offer(b)
+		}
+	} else {
+		//只扫新的
+		u, err := url.Parse(this.Task.Payload)
+		if err != nil {
+			log.Println(err)
+		}
+		q := u.Query()
+		q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
+		log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
+		u.RawQuery = q.Encode()
+		this.Task.Payload = u.String()
+		this.Task.New = false
+		var buf bytes.Buffer
+		e := json.NewEncoder(&buf)
+		e.SetEscapeHTML(false)
+		err = e.Encode(&this.Task)
+		if err != nil {
+			log.Println(err)
+		}
+		b := buf.Bytes()
+		queue.Q.Offer(b)
 	}
-	q := u.Query()
-	q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
-	log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
-	u.RawQuery = q.Encode()
-	this.Task.Payload = u.String()
-	var buf bytes.Buffer
-	e := json.NewEncoder(&buf)
-	e.SetEscapeHTML(false)
-	err = e.Encode(&this.Task)
-	if err != nil {
-		log.Println(err)
-	}
-	b := buf.Bytes()
-	queue.Q.Offer(b)
-	return b
 }
 
-func (this *Comment) HasNextPage() bool {
-	if this.hasNext == -1 {
+func (this *MainComment) HasNextPage() bool {
+	/*if this.HasNext == -1 {
 		return false
-	}
-	var pageNum int
+	}else {
+		return true
+	}*/
+	return !(this.HasNext == -1)
+	/*var pageNum int
 	if this.Data.Page.Count%this.Data.Page.Size == 0 {
 		pageNum = this.Data.Page.Count / this.Data.Page.Size
 	} else {
 		pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
 	}
-	return this.Data.Page.Num < pageNum
+	return this.Data.Page.Num < pageNum*/
 }
 
-func (this *Comment) Store() {
+func (this *MainComment) Store() {
+	if len(this.Data.Replies) == 0 {
+		this.HasNext = -1
+		return
+	}
 	var cmts []model.Comment
+	minRpid := math.MaxInt
 	for _, v := range this.Data.Replies {
 		cmts = append(cmts, model.Comment{
 			Rpid:    v.Rpid,
@@ -82,12 +125,24 @@ func (this *Comment) Store() {
 			Ctime:   time.Unix(int64(v.Ctime), 0),
 			Content: v.Content.Message,
 		})
+		if v.Rpid < minRpid {
+			minRpid = v.Rpid
+		}
 	}
-	d := db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
-	if int(d.RowsAffected) != len(this.Data.Replies) {
-		this.hasNext = -1
+	if !this.Task.New {
+		//不是第一次扫
+		//逐页检验
+		var dbMaxRpid int
+		db.Db.Raw("select max(rpid) from comment where `to` = ?", cmts[0].To).Scan(&dbMaxRpid)
+		if !(minRpid > dbMaxRpid) {
+			this.HasNext = -1
+		}
+	}
+	/*d := */ db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
+	/*if int(d.RowsAffected) != len(this.Data.Replies) {
+		this.HasNext = -1
 		log.Println("insert conflict")
-	}
+	}*/
 	var ups []model.Up
 	for _, v := range this.Data.Replies {
 		ups = append(ups, model.Up{

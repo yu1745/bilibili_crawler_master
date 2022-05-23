@@ -14,6 +14,7 @@ const (
 type Task struct {
 	TaskType TaskType `json:"TaskType"`
 	Payload  string   `json:"Payload"`
+	New      bool     `json:"new"`
 }
 
 func (this *Task) getPayload() string {

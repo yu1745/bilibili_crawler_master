@@ -1,21 +1,17 @@
 package main
 
 import (
-	"github.com/yu1745/bilibili_crawler_master/util/worker"
-	"log"
-	"time"
+	"fmt"
+	"github.com/yu1745/bilibili_crawler_master/db"
+	"github.com/yu1745/bilibili_crawler_master/model"
 )
 
 func main() {
-	t := time.Now()
-	s := `{
-  "TaskType": 0,
-  "Payload": "http://api.bilibili.com/x/v2/reply?type=1&oid=2&ps=49&pn=10&nohot=1"
-}`
-	invoke, err := worker.Invoke("test", []byte(s))
-	if err != nil {
-		log.Println(err)
-	}
-	println(string(invoke))
-	println(time.Now().Sub(t).String())
+	db.Init()
+	var cmt model.Comment
+	db.Db.Where("rpid > ?", 113765133632).Order("rpid").Limit(1).Find(&cmt)
+	fmt.Printf("%+v", cmt)
+	var i int
+	db.Db.Raw("select max(rpid) from comment where `to`= ?", 3).Scan(&i)
+	println(i)
 }
