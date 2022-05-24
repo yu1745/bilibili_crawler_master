@@ -33,7 +33,6 @@ func Process(v worker.Worker, ctx context.Context) {
 			}
 			var task vo.Task
 			_ = json.Unmarshal(poll, &task)
-			var paged vo.Paged
 			switch task.TaskType {
 			case vo.GetCommentsFromVideo:
 				var cmt vo.MainComment
@@ -41,11 +40,17 @@ func Process(v worker.Worker, ctx context.Context) {
 				if err != nil {
 					log.Fatalln(err)
 				}
-				paged = &cmt
+				cmt.Store()
+				cmt.Next()
+			case vo.GetSubscribers:
+				var subs vo.Subs
+				err = json.Unmarshal([]byte(unquote), &subs)
+				if err != nil {
+					log.Fatalln(err)
+				}
 			default:
 			}
-			paged.Store()
-			paged.Next()
+
 		}
 	}
 }

@@ -1,17 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"github.com/yu1745/bilibili_crawler_master/db"
 	"github.com/yu1745/bilibili_crawler_master/model"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
+	"time"
 )
 
 func main() {
 	db.Init()
-	var cmt model.Comment
-	db.Db.Where("rpid > ?", 113765133632).Order("rpid").Limit(1).Find(&cmt)
-	fmt.Printf("%+v", cmt)
-	var i int
-	db.Db.Raw("select max(rpid) from comment where `to`= ?", 3).Scan(&i)
-	println(i)
+	db.Db.Logger = logger.Default.LogMode(logger.Info)
+	db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.Up{UID: 361713503, LastScanned: time.Now()})
 }
