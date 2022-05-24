@@ -12,9 +12,8 @@ const TableNameVideo = "video"
 
 // Video mapped from table <video>
 type Video struct {
-	Avid        int       `gorm:"column:avid;not null" json:"avid"`
+	Avid        int       `gorm:"column:avid;not null;primaryKey" json:"avid"`
 	LastUpdated time.Time `gorm:"column:last_updated;not null;default:CURRENT_TIMESTAMP" json:"last_updated"`
-	ID          int       `gorm:"column:id;primaryKey" json:"id"`
 }
 
 // TableName Video's table name

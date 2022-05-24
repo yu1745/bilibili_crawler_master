@@ -1,15 +1,24 @@
 package main
 
 import (
-	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/model"
-	"gorm.io/gorm/clause"
-	"gorm.io/gorm/logger"
-	"time"
 )
 
 func main() {
-	C.InitDB()
-	C.Db.Logger = logger.Default.LogMode(logger.Info)
-	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.Up{UID: 361713503, LastScanned: time.Now()})
+	/*dsn := "host=127.0.0.1 port=5432 user=postgres dbname=bilibili password=asdk7788AA sslmode=disable TimeZone=Asia/Shanghai"
+	Db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	Db.Logger = logger.Default.LogMode(logger.Info)
+	var ups []model.Up
+	ups = append(ups, model.Up{UID: 1})
+	ups = append(ups, model.Up{UID: 123})
+	ups = append(ups, model.Up{UID: 124})
+	ups = append(ups, model.Up{UID: 125})
+	Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
+	println()*/
+	videos := make([]model.Video, 10)
+	videos = append(videos, model.Video{Avid: 213312})
+	println()
 }

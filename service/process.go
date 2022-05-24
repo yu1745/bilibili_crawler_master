@@ -50,6 +50,14 @@ func Process(v worker.Worker, ctx context.Context) {
 				}
 				subs.Store()
 				subs.Next()
+			case vo.GetVideoFromUp:
+				var video vo.Video
+				err = json.Unmarshal([]byte(unquote), &video)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				video.Store()
+				video.Next()
 			default:
 			}
 
