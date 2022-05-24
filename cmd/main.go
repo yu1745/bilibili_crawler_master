@@ -41,7 +41,7 @@ func main() {
 	go router.Init()
 	C.InitDB()
 	C.InitQueue()
-	log.SetFlags(log.Lshortfile | log.Ltime)
+	log.SetFlags(log.Lshortfile | log.Ltime | log.Lmicroseconds)
 	worker.Init(num)
 	ctx, cancelFunc_ := context.WithCancel(context.Background())
 	cancelFunc = cancelFunc_

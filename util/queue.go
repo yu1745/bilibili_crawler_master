@@ -52,7 +52,7 @@ func (d *DurableQueue) Poll() (rt []byte, err error) {
 		err = errors.New("")
 		return
 	}
-	log.Printf("[queue-]:%s", rt)
+	//log.Printf("[queue-]:%s", rt)
 	return
 }
 

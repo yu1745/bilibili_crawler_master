@@ -29,7 +29,8 @@ func Process(v worker.Worker, ctx context.Context) {
 			}
 			unquote, err := strconv.Unquote(string(output))
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
+				continue
 			}
 			var task vo.Task
 			_ = json.Unmarshal(poll, &task)

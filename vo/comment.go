@@ -7,7 +7,6 @@ import (
 	"github.com/yu1745/bilibili_crawler_master/model"
 	"gorm.io/gorm/clause"
 	"log"
-	"math"
 	"net/url"
 	"strconv"
 	"time"
@@ -78,19 +77,14 @@ func (this *MainComment) Next() {
 			}
 			q := u.Query()
 			q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
-			log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
+			log.Printf("[%v] id=%s page=%d\n", this.Task.TaskType, q.Get("oid"), this.Data.Page.Num+1)
 			u.RawQuery = q.Encode()
-			this.Task.Payload = u.String()
-			this.Task.New = false
-			var buf bytes.Buffer
-			e := json.NewEncoder(&buf)
-			e.SetEscapeHTML(false)
-			err = e.Encode(&this.Task)
-			if err != nil {
-				log.Println(err)
+			task := Task{
+				TaskType: GetCommentsFromVideo,
+				Payload:  u.String(),
+				New:      false,
 			}
-			b := buf.Bytes()
-			C.Q.Offer(b)
+			C.Q.Offer(task.Encode())
 		}
 	}
 }
@@ -117,7 +111,18 @@ func (this *MainComment) Store() {
 		return
 	}
 	var cmts []model.Comment
-	minRpid := math.MaxInt
+	if !this.Task.New {
+		//不是第一次扫
+		//每页检查一下是否扫到了上次已经扫了的部分
+		var keys []int
+		for _, v := range this.Data.Replies {
+			keys = append(keys, v.Rpid)
+		}
+		if int(C.Db.Find(&cmts, keys).RowsAffected) == len(this.Data.Replies) {
+			this.HasNext = -1
+		}
+		cmts = make([]model.Comment, 0)
+	}
 	for _, v := range this.Data.Replies {
 		cmts = append(cmts, model.Comment{
 			Rpid:    v.Rpid,
@@ -128,30 +133,16 @@ func (this *MainComment) Store() {
 			Ctime:   time.Unix(int64(v.Ctime), 0),
 			Content: v.Content.Message,
 		})
-		if v.Rpid < minRpid {
-			minRpid = v.Rpid
-		}
 	}
-	if !this.Task.New {
-		//不是第一次扫
-		//逐页检验
-		var dbMaxRpid int
-		C.Db.Raw(`select max(rpid) from comment where "to" = ?`, cmts[0].To).Scan(&dbMaxRpid)
-		if !(minRpid > dbMaxRpid) {
-			this.HasNext = -1
-		}
-	}
-	/*d := */ C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
-	/*if int(d.RowsAffected) != len(this.Data.Replies) {
-		this.HasNext = -1
-		log.Println("insert conflict")
-	}*/
-	var ups []model.Up
+	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
+	var ups []model.User
 	for _, v := range this.Data.Replies {
-		ups = append(ups, model.Up{
+		ups = append(ups, model.User{
 			UID:         v.Mid,
 			LastScanned: time.Unix(946656000, 0),
 		})
+		b := NewInitTask(GetSubscribers, strconv.Itoa(v.Mid), false).Encode()
+		C.Q.Offer(b)
 	}
 	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
 }

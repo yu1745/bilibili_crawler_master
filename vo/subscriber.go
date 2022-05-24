@@ -22,7 +22,7 @@ type Subs struct {
 		} `json:"list"`
 		Total int `json:"total"`
 	} `json:"data"`
-	Task
+	Meta
 }
 
 func (this *Subs) Next() {
@@ -43,7 +43,7 @@ func (this *Subs) Next() {
 			num = maxPageNumber
 		}
 		for i := 2; i <= num; i++ {
-			u, err := url.Parse(this.Payload)
+			u, err := url.Parse(this.Task.Payload)
 			if err != nil {
 				log.Println(err)
 			}
@@ -61,6 +61,10 @@ func (this *Subs) Next() {
 }
 
 func (this *Subs) Store() {
+	if this.Pn == 1 {
+		//更新数据库中上次扫面时间字段
+		C.Db.Save(&model.User{UID: this.Mid, LastScanned: time.Now()})
+	}
 	if len(this.Data.List) == 0 {
 		return
 	}

@@ -168,9 +168,9 @@ func Invoke(name string, payload []byte) ([]byte, error) {
 		FunctionName: aws.String(name),
 		Payload:      payload,
 	})
-	if output.FunctionError != nil {
-		println(*output.FunctionError)
-	}
+	/*if output.FunctionError != nil {
+		println(*output.  FunctionError)
+	}*/
 	return output.Payload, err
 }
 

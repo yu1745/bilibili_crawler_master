@@ -57,14 +57,23 @@ func (this *Video) Next() {
 				}
 				C.Q.Offer(buf.Bytes())
 			}
-		} else {
-			if this.HasNext != -1 {
+		}
+	} else {
+		if this.HasNext != -1 {
+			var pageNum int
+			if this.Data.Page.Count%this.Data.Page.Ps == 0 {
+				pageNum = this.Data.Page.Count / this.Data.Page.Ps
+			} else {
+				pageNum = this.Data.Page.Count/this.Data.Page.Ps + 1
+			}
+			if this.Data.Page.Pn < pageNum {
 				u, err := url.Parse(this.Task.Payload)
 				if err != nil {
 					log.Println(err)
 				}
 				q := u.Query()
 				q.Set("pn", strconv.Itoa(this.Data.Page.Pn+1))
+				//println("pn:", strconv.Itoa(this.Data.Page.Pn+1))
 				u.RawQuery = q.Encode()
 				task := Task{TaskType: GetVideoFromUp, Payload: u.String(), New: false}
 				var buf bytes.Buffer
@@ -85,14 +94,16 @@ func (this *Video) Store() {
 		return
 	}
 	var videos []model.Video
-	var avids []int
-	for _, v := range this.Data.List.Vlist {
-		avids = append(avids, v.Aid)
+	if !this.Task.New {
+		var avids []int
+		for _, v := range this.Data.List.Vlist {
+			avids = append(avids, v.Aid)
+		}
+		if int(C.Db.Find(&videos, avids).RowsAffected) == this.Data.Page.Ps {
+			this.HasNext = -1
+		}
+		videos = make([]model.Video, 0)
 	}
-	if int(C.Db.Find(&videos, avids).RowsAffected) == this.Data.Page.Ps {
-		this.HasNext = -1
-	}
-	videos = make([]model.Video, 0)
 	for _, v := range this.Data.List.Vlist {
 		videos = append(videos, model.Video{Avid: v.Aid, LastUpdated: time.Unix(946656000, 0)})
 	}
