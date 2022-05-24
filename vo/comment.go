@@ -3,9 +3,8 @@ package vo
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/yu1745/bilibili_crawler_master/db"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/model"
-	"github.com/yu1745/bilibili_crawler_master/queue"
 	"gorm.io/gorm/clause"
 	"log"
 	"math"
@@ -67,7 +66,7 @@ func (this *MainComment) Next() {
 				}
 				b := buf.Bytes()
 				log.Printf("[%v] page %d\n", this.Task.TaskType, i)
-				queue.Q.Offer(b)
+				C.Q.Offer(b)
 			}
 		}
 	} else {
@@ -91,7 +90,7 @@ func (this *MainComment) Next() {
 				log.Println(err)
 			}
 			b := buf.Bytes()
-			queue.Q.Offer(b)
+			C.Q.Offer(b)
 		}
 	}
 }
@@ -137,12 +136,12 @@ func (this *MainComment) Store() {
 		//不是第一次扫
 		//逐页检验
 		var dbMaxRpid int
-		db.Db.Raw(`select max(rpid) from comment where "to" = ?`, cmts[0].To).Scan(&dbMaxRpid)
+		C.Db.Raw(`select max(rpid) from comment where "to" = ?`, cmts[0].To).Scan(&dbMaxRpid)
 		if !(minRpid > dbMaxRpid) {
 			this.HasNext = -1
 		}
 	}
-	/*d := */ db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
+	/*d := */ C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
 	/*if int(d.RowsAffected) != len(this.Data.Replies) {
 		this.HasNext = -1
 		log.Println("insert conflict")
@@ -154,5 +153,5 @@ func (this *MainComment) Store() {
 			LastScanned: time.Unix(946656000, 0),
 		})
 	}
-	db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
+	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
 }

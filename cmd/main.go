@@ -3,8 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/yu1745/bilibili_crawler_master/db"
-	"github.com/yu1745/bilibili_crawler_master/queue"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/router"
 	"github.com/yu1745/bilibili_crawler_master/service"
 	"github.com/yu1745/bilibili_crawler_master/util/worker"
@@ -39,11 +38,10 @@ func init() {
 }
 
 func main() {
-	//log.SetFlags(log.Lshortfile)
-	log.SetFlags(^log.Ltime)
-	go db.Init()
 	go router.Init()
-	queue.Init()
+	C.InitDB()
+	C.InitQueue()
+	log.SetFlags(log.Lshortfile | log.Ltime)
 	worker.Init(num)
 	ctx, cancelFunc_ := context.WithCancel(context.Background())
 	cancelFunc = cancelFunc_

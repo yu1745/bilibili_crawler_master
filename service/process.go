@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"github.com/yu1745/bilibili_crawler_master/queue"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/util/worker"
 	"github.com/yu1745/bilibili_crawler_master/vo"
 	"log"
@@ -18,7 +18,7 @@ func Process(v worker.Worker, ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			poll, err := queue.Q.Poll()
+			poll, err := C.Q.Poll()
 			if err != nil {
 				continue
 			}
@@ -48,6 +48,8 @@ func Process(v worker.Worker, ctx context.Context) {
 				if err != nil {
 					log.Fatalln(err)
 				}
+				subs.Store()
+				subs.Next()
 			default:
 			}
 

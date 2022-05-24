@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yu1745/bilibili_crawler_master/db"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/model"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	db.Init()
-	db.Db.Logger = logger.Default.LogMode(logger.Info)
-	db.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.Up{UID: 361713503, LastScanned: time.Now()})
+	C.InitDB()
+	C.Db.Logger = logger.Default.LogMode(logger.Info)
+	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.Up{UID: 361713503, LastScanned: time.Now()})
 }

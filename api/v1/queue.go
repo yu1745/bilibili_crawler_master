@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/yu1745/bilibili_crawler_master/queue"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 )
 
 func PutQueue(c *gin.Context) {
@@ -10,11 +10,11 @@ func PutQueue(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	queue.Q.Offer(data)
+	C.Q.Offer(data)
 }
 
 func GetQueue(c *gin.Context) {
-	poll, err := queue.Q.Poll()
+	poll, err := C.Q.Poll()
 	if err != nil {
 		return
 	}

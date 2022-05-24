@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/yu1745/bilibili_crawler_master/db"
+	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"gorm.io/gen"
 	"gorm.io/gorm/logger"
 )
 
 func main() {
-	db.Init()
-	db.Db.Logger = logger.Default.LogMode(logger.Info)
+	C.InitDB()
+	C.Db.Logger = logger.Default.LogMode(logger.Info)
 	g := gen.NewGenerator(gen.Config{
 		OutPath: "./master/",
 		/* Mode: gen.WithoutContext|gen.WithDefaultQuery*/
@@ -29,7 +29,7 @@ func main() {
 	// reuse the database connection in Project or create a connection here
 	// if you want to use GenerateModel/GenerateModelAs, UseDB is necessary or it will panic
 	// db, _ := gorm.Open(mysql.Open("root:@(127.0.0.1:3306)/demo?charset=utf8mb4&parseTime=True&loc=Local"))
-	g.UseDB(db.Db)
+	g.UseDB(C.Db)
 
 	// apply basic crud api on structs or table models which is specified by table name with function
 	// GenerateModel/GenerateModelAs. And generator will generate table models' code when calling Excute.
