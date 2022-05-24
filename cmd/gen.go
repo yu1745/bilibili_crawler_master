@@ -1,16 +1,14 @@
 package main
 
 import (
-	"gorm.io/driver/mysql"
+	"github.com/yu1745/bilibili_crawler_master/db"
 	"gorm.io/gen"
-	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
-	db, err := gorm.Open(mysql.Open("root:asdk7788AA@tcp(127.0.0.1)/bilibili?parseTime=True&loc=Local"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
+	db.Init()
+	db.Db.Logger = logger.Default.LogMode(logger.Info)
 	g := gen.NewGenerator(gen.Config{
 		OutPath: "./master/",
 		/* Mode: gen.WithoutContext|gen.WithDefaultQuery*/
@@ -31,7 +29,7 @@ func main() {
 	// reuse the database connection in Project or create a connection here
 	// if you want to use GenerateModel/GenerateModelAs, UseDB is necessary or it will panic
 	// db, _ := gorm.Open(mysql.Open("root:@(127.0.0.1:3306)/demo?charset=utf8mb4&parseTime=True&loc=Local"))
-	g.UseDB(db)
+	g.UseDB(db.Db)
 
 	// apply basic crud api on structs or table models which is specified by table name with function
 	// GenerateModel/GenerateModelAs. And generator will generate table models' code when calling Excute.
@@ -42,8 +40,12 @@ func main() {
 
 	// execute the action of code generation
 	dataMap := map[string]func(detailType string) (dataType string){
-		"int":    func(detailType string) (dataType string) { return "int" },
-		"bigint": func(detailType string) (dataType string) { return "int" },
+		"int": func(detailType string) (dataType string) {
+			return "int"
+		},
+		"bigint": func(detailType string) (dataType string) {
+			return "int"
+		},
 	}
 	g.WithDataTypeMap(dataMap)
 	g.GenerateAllTable()

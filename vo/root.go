@@ -1,6 +1,6 @@
 package vo
 
-type MidAndTask struct {
+type Meta struct {
 	// 目标id
 	Mid  int  `json:"mid"`
 	Task Task `json:"task"`
@@ -9,7 +9,7 @@ type MidAndTask struct {
 }
 
 type Paged interface {
-	HasNextPage() bool
-	Next() []byte
+	//HasNextPage() bool
+	Next()
 	Store()
 }

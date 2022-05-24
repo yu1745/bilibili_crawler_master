@@ -8,14 +8,10 @@ const TableNameUserRelation = "user_relations"
 
 // UserRelation mapped from table <user_relations>
 type UserRelation struct {
-	ID   int `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	From int `gorm:"column:from;not null" json:"from"`
-	To   int `gorm:"column:to" json:"to"`
-	/*
-		1 关注
-		2 看过TA的视频(疑似关注)
-	*/
-	Relation int32 `gorm:"column:relation;not null" json:"relation"`
+	ID       int `gorm:"column:id;primaryKey" json:"id"`
+	From     int `gorm:"column:from;not null" json:"from"`
+	To       int `gorm:"column:to" json:"to"`
+	Relation int `gorm:"column:relation;not null" json:"relation"`
 }
 
 // TableName UserRelation's table name

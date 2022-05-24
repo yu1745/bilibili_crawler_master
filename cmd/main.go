@@ -8,6 +8,7 @@ import (
 	"github.com/yu1745/bilibili_crawler_master/router"
 	"github.com/yu1745/bilibili_crawler_master/service"
 	"github.com/yu1745/bilibili_crawler_master/util/worker"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,6 +39,8 @@ func init() {
 }
 
 func main() {
+	//log.SetFlags(log.Lshortfile)
+	log.SetFlags(^log.Ltime)
 	go db.Init()
 	go router.Init()
 	queue.Init()

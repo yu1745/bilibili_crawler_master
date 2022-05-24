@@ -8,5 +8,15 @@ type Subs struct {
 		} `json:"list"`
 		Total int `json:"total"`
 	} `json:"data"`
-	Mid int `json:"mid"`
+	Meta
+}
+
+func (this *Subs) Next() []byte {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (this *Subs) Store() {
+	//TODO implement me
+	panic("implement me")
 }

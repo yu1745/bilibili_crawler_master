@@ -50,7 +50,9 @@ func (d *DurableQueue) Poll() (rt []byte, err error) {
 	}
 	if rt == nil || len(rt) == 0 {
 		err = errors.New("")
+		return
 	}
+	log.Printf("[queue-]:%s", rt)
 	return
 }
 
@@ -85,6 +87,7 @@ func (d *DurableQueue) poll() {
 }
 
 func (d *DurableQueue) Offer(b []byte) {
+	//log.Printf("[queue+]:%s", b)
 	d.writeCh <- b
 }
 

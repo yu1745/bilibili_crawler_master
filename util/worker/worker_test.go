@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -65,5 +66,9 @@ func TestInvoke(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	println(string(invoke))
+	unquote, err := strconv.Unquote(string(invoke))
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(unquote)
 }

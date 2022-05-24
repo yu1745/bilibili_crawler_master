@@ -33,19 +33,46 @@ type MainComment struct {
 			} `json:"content,omitempty"`
 		} `json:"replies"`
 	} `json:"data"`
-	MidAndTask
+	Meta
 }
 
 func (this *MainComment) Next() {
-	if this.Task.New && this.Data.Page.Num == 1 {
-		//没扫过，直接并行生成
-		var pageNum int
-		if this.Data.Page.Count%this.Data.Page.Size == 0 {
-			pageNum = this.Data.Page.Count / this.Data.Page.Size
-		} else {
-			pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
+	if this.Task.New {
+		if this.Data.Page.Num == 1 {
+			//没扫过，直接并行生成
+			var pageNum int
+			if this.Data.Page.Count%this.Data.Page.Size == 0 {
+				pageNum = this.Data.Page.Count / this.Data.Page.Size
+			} else {
+				pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
+			}
+			for i := 2; i < pageNum; i++ {
+				u, err := url.Parse(this.Task.Payload)
+				if err != nil {
+					log.Println(err)
+				}
+				q := u.Query()
+				q.Set("pn", strconv.Itoa(i))
+				u.RawQuery = q.Encode()
+				this.Task.Payload = u.String()
+				this.Task.New = true
+				//批量生成的任务，不用检验是否有下一页
+				this.HasNext = -1
+				var buf bytes.Buffer
+				e := json.NewEncoder(&buf)
+				e.SetEscapeHTML(false)
+				err = e.Encode(&this.Task)
+				if err != nil {
+					log.Println(err)
+				}
+				b := buf.Bytes()
+				log.Printf("[%v] page %d\n", this.Task.TaskType, i)
+				queue.Q.Offer(b)
+			}
 		}
-		for i := 2; i < pageNum; i++ {
+	} else {
+		//只扫新的
+		if this.HasNext != -1 {
 			u, err := url.Parse(this.Task.Payload)
 			if err != nil {
 				log.Println(err)
@@ -56,8 +83,6 @@ func (this *MainComment) Next() {
 			u.RawQuery = q.Encode()
 			this.Task.Payload = u.String()
 			this.Task.New = false
-			//批量生成的任务，不用检验是否有下一页
-			this.HasNext = -1
 			var buf bytes.Buffer
 			e := json.NewEncoder(&buf)
 			e.SetEscapeHTML(false)
@@ -68,45 +93,24 @@ func (this *MainComment) Next() {
 			b := buf.Bytes()
 			queue.Q.Offer(b)
 		}
-	} else {
-		//只扫新的
-		u, err := url.Parse(this.Task.Payload)
-		if err != nil {
-			log.Println(err)
-		}
-		q := u.Query()
-		q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
-		log.Printf("[%v] page %d\n	", this.Task.TaskType, this.Data.Page.Num+1)
-		u.RawQuery = q.Encode()
-		this.Task.Payload = u.String()
-		this.Task.New = false
-		var buf bytes.Buffer
-		e := json.NewEncoder(&buf)
-		e.SetEscapeHTML(false)
-		err = e.Encode(&this.Task)
-		if err != nil {
-			log.Println(err)
-		}
-		b := buf.Bytes()
-		queue.Q.Offer(b)
 	}
 }
 
-func (this *MainComment) HasNextPage() bool {
-	/*if this.HasNext == -1 {
-		return false
-	}else {
-		return true
-	}*/
-	return !(this.HasNext == -1)
-	/*var pageNum int
-	if this.Data.Page.Count%this.Data.Page.Size == 0 {
-		pageNum = this.Data.Page.Count / this.Data.Page.Size
-	} else {
-		pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
-	}
-	return this.Data.Page.Num < pageNum*/
-}
+//func (this *MainComment) HasNextPage() bool {
+//	/*if this.HasNext == -1 {
+//		return false
+//	}else {
+//		return true
+//	}*/
+//	return !(this.HasNext == -1)
+//	/*var pageNum int
+//	if this.Data.Page.Count%this.Data.Page.Size == 0 {
+//		pageNum = this.Data.Page.Count / this.Data.Page.Size
+//	} else {
+//		pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
+//	}
+//	return this.Data.Page.Num < pageNum*/
+//}
 
 func (this *MainComment) Store() {
 	if len(this.Data.Replies) == 0 {
@@ -133,7 +137,7 @@ func (this *MainComment) Store() {
 		//不是第一次扫
 		//逐页检验
 		var dbMaxRpid int
-		db.Db.Raw("select max(rpid) from comment where `to` = ?", cmts[0].To).Scan(&dbMaxRpid)
+		db.Db.Raw(`select max(rpid) from comment where "to" = ?`, cmts[0].To).Scan(&dbMaxRpid)
 		if !(minRpid > dbMaxRpid) {
 			this.HasNext = -1
 		}
