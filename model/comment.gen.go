@@ -12,7 +12,7 @@ const TableNameComment = "comment"
 
 // Comment mapped from table <comment>
 type Comment struct {
-	Rpid    int       `gorm:"column:rpid;not null;primaryKey" json:"rpid"`
+	Rpid    int       `gorm:"column:rpid;primaryKey" json:"rpid"`
 	From    int       `gorm:"column:from;not null" json:"from"`
 	To      int       `gorm:"column:to;not null" json:"to"`
 	Avid    int       `gorm:"column:avid;not null" json:"avid"`

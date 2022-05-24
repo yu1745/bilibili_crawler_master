@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxPageNumber = 5
+
 type Subs struct {
 	Code int `json:"code"`
 	Data struct {
@@ -24,12 +26,21 @@ type Subs struct {
 }
 
 func (this *Subs) Next() {
-	if this.Data.Total > 50 {
+	u, err := url.Parse(this.Task.Payload)
+	if err != nil {
+		log.Println(err)
+	}
+	q := u.Query()
+	ps, _ := strconv.Atoi(q.Get("ps"))
+	if q.Get("pn") == "1" && this.Data.Total > ps {
 		num := 1
-		if this.Data.Total%50 == 0 {
-			num = this.Data.Total / 50
+		if this.Data.Total%ps == 0 {
+			num = this.Data.Total / ps
 		} else {
-			num = this.Data.Total/50 + 1
+			num = this.Data.Total/ps + 1
+		}
+		if maxPageNumber < num {
+			num = maxPageNumber
 		}
 		for i := 2; i <= num; i++ {
 			u, err := url.Parse(this.Payload)
