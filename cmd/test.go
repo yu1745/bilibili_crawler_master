@@ -5,7 +5,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 func main() {
@@ -15,9 +14,6 @@ func main() {
 		panic("failed to connect database")
 	}
 	Db.Logger = logger.Default.LogMode(logger.Info)
-	Db.Save(&model.User{
-		UID:         524931,
-		LastScanned: time.Now(),
-	})
+	println(Db.First(&model.User{UID: 6498383}).RowsAffected)
 	println()
 }

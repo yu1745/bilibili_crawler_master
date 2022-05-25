@@ -1,8 +1,6 @@
 package vo
 
 import (
-	"bytes"
-	"encoding/json"
 	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/model"
 	"gorm.io/gorm/clause"
@@ -52,39 +50,40 @@ func (this *MainComment) Next() {
 				q := u.Query()
 				q.Set("pn", strconv.Itoa(i))
 				u.RawQuery = q.Encode()
-				this.Task.Payload = u.String()
-				this.Task.New = true
-				//批量生成的任务，不用检验是否有下一页
-				this.HasNext = -1
-				var buf bytes.Buffer
-				e := json.NewEncoder(&buf)
-				e.SetEscapeHTML(false)
-				err = e.Encode(&this.Task)
-				if err != nil {
-					log.Println(err)
+				task := Task{
+					TaskType: GetCommentsFromVideo,
+					Payload:  u.String(),
+					New:      true,
 				}
-				b := buf.Bytes()
-				log.Printf("[%v] page %d\n", this.Task.TaskType, i)
-				C.Q.Offer(b)
+				log.Printf("[GetCommentsFromVideo] id=%d page=%d\n", this.Mid, i)
+				C.Q.Offer(task.Encode())
 			}
 		}
 	} else {
 		//只扫新的
 		if this.HasNext != -1 {
-			u, err := url.Parse(this.Task.Payload)
-			if err != nil {
-				log.Println(err)
+			var pageNum int
+			if this.Data.Page.Count%this.Data.Page.Size == 0 {
+				pageNum = this.Data.Page.Count / this.Data.Page.Size
+			} else {
+				pageNum = this.Data.Page.Count/this.Data.Page.Size + 1
 			}
-			q := u.Query()
-			q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
-			log.Printf("[%v] id=%s page=%d\n", this.Task.TaskType, q.Get("oid"), this.Data.Page.Num+1)
-			u.RawQuery = q.Encode()
-			task := Task{
-				TaskType: GetCommentsFromVideo,
-				Payload:  u.String(),
-				New:      false,
+			if this.Data.Page.Num < pageNum {
+				u, err := url.Parse(this.Task.Payload)
+				if err != nil {
+					log.Println(err)
+				}
+				q := u.Query()
+				q.Set("pn", strconv.Itoa(this.Data.Page.Num+1))
+				log.Printf("[GetCommentsFromVideo] id=%d page=%d\n", this.Mid, this.Data.Page.Num+1)
+				u.RawQuery = q.Encode()
+				task := Task{
+					TaskType: GetCommentsFromVideo,
+					Payload:  u.String(),
+					New:      false,
+				}
+				C.Q.Offer(task.Encode())
 			}
-			C.Q.Offer(task.Encode())
 		}
 	}
 }
@@ -135,14 +134,17 @@ func (this *MainComment) Store() {
 		})
 	}
 	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
-	var ups []model.User
+	var users []model.User
 	for _, v := range this.Data.Replies {
-		ups = append(ups, model.User{
-			UID:         v.Mid,
-			LastScanned: time.Unix(946656000, 0),
-		})
-		b := NewInitTask(GetSubscribers, strconv.Itoa(v.Mid), false).Encode()
-		C.Q.Offer(b)
+		if C.Db.Limit(1).Find(&model.User{UID: v.Mid}).RowsAffected == 0 {
+			users = append(users, model.User{
+				UID:         v.Mid,
+				LastScanned: time.Unix(946656000, 0),
+			})
+			C.Q.Offer(NewInitTask(GetSubscribers, strconv.Itoa(v.Mid), false).Encode())
+		}
 	}
-	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&ups)
+	if len(users) > 0 {
+		C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&users)
+	}
 }

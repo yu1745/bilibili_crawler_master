@@ -3,6 +3,7 @@ package vo
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/url"
 )
 
@@ -37,7 +38,10 @@ func (this *Task) Encode() []byte {
 	var buf bytes.Buffer
 	e := json.NewEncoder(&buf)
 	e.SetEscapeHTML(false)
-	_ = e.Encode(this)
+	err := e.Encode(this)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return buf.Bytes()
 }
 

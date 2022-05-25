@@ -246,10 +246,8 @@ func Init(num int) {
 	for _, v := range allNames {
 		Workers = append(Workers, Worker{Name: v})
 	}
-	//marshal, _ := json.Marshal(&Workers)
-	//_ = os.WriteFile("/tmp/names", marshal, 0644)
-	//}
-	for _, v := range Workers {
+	/*for _, v := range Workers {
 		log.Println(v.Name)
-	}
+	}*/
+	log.Println("worker num:", len(allNames))
 }

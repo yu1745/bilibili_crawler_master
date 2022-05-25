@@ -13,10 +13,10 @@ func PutQueue(c *gin.Context) {
 	C.Q.Offer(data)
 }
 
-func GetQueue(c *gin.Context) {
+/*func GetQueue(c *gin.Context) {
 	poll, err := C.Q.Poll()
 	if err != nil {
 		return
 	}
 	_, _ = c.Writer.Write(poll)
-}
+}*/

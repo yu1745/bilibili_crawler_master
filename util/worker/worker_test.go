@@ -58,12 +58,12 @@ func TestGetFunctionUrl(t *testing.T) {
 }
 
 func TestInvoke(t *testing.T) {
-	s := `{"TaskType": 1,"Payload": "http://api.bilibili.com/x/space/arc/search?mid=11605312&order=pubdate&pn=5&ps=49","new":false}`
+	s := `{"TaskType":0,"Payload":"http://api.bilibili.com/x/v2/reply?type=1&oid=596088009&ps=49&pn=1&nohot=1","new":false}`
 	invoke, err := Invoke("test", []byte(s))
 	if err != nil {
 		t.Error(err)
 	}
-	println(string(invoke))
+	fmt.Println(string(invoke))
 	unquote, err := strconv.Unquote(string(invoke))
 	if err != nil {
 		t.Error(err)

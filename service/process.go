@@ -23,15 +23,20 @@ func Process(v worker.Worker, ctx context.Context) {
 				continue
 			}
 			output, err := worker.Invoke(v.Name, poll)
-			if err != nil {
-				panic("rebuild worker")
+			if err != nil || len(output) == 0 {
+				//panic("rebuild worker")
 				//todo 重建worker
+				continue
 			}
 			unquote, err := strconv.Unquote(string(output))
 			if err != nil {
 				log.Println(err)
+				println(string(output))
 				continue
 			}
+
+			println(unquote)
+
 			var task vo.Task
 			_ = json.Unmarshal(poll, &task)
 			switch task.TaskType {

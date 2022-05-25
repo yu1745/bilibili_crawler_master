@@ -26,19 +26,14 @@ type Subs struct {
 }
 
 func (this *Subs) Next() {
-	u, err := url.Parse(this.Task.Payload)
-	if err != nil {
-		log.Println(err)
-	}
-	q := u.Query()
-	ps, _ := strconv.Atoi(q.Get("ps"))
-	if q.Get("pn") == "1" && this.Data.Total > ps {
+	if this.Pn == 1 && this.Data.Total > this.Ps {
 		num := 1
-		if this.Data.Total%ps == 0 {
-			num = this.Data.Total / ps
+		if this.Data.Total%this.Ps == 0 {
+			num = this.Data.Total / this.Ps
 		} else {
-			num = this.Data.Total/ps + 1
+			num = this.Data.Total/this.Ps + 1
 		}
+		//取两个之中的较小值
 		if maxPageNumber < num {
 			num = maxPageNumber
 		}
@@ -69,8 +64,25 @@ func (this *Subs) Store() {
 		return
 	}
 	var subs []model.Up
-	for _, v := range this.Data.List {
-		subs = append(subs, model.Up{UID: v.Mid, LastScanned: time.Unix(946656000, 0)})
+	if !this.Task.New {
+		//不是第一次扫
+		//每页检查一下是否扫到了上次已经扫了的部分
+		var uids []int
+		for _, v := range this.Data.List {
+			uids = append(uids, v.Mid)
+		}
+		if int(C.Db.Find(&subs, uids).RowsAffected) == len(this.Data.List) {
+			this.HasNext = -1
+		}
+		subs = make([]model.Up, 0)
 	}
-	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&subs)
+	for _, v := range this.Data.List {
+		if C.Db.Limit(1).Find(&model.Up{UID: v.Mid}).RowsAffected == 0 {
+			subs = append(subs, model.Up{UID: v.Mid, LastScanned: time.Unix(946656000, 0)})
+			C.Q.Offer(NewInitTask(GetVideoFromUp, strconv.Itoa(v.Mid), false).Encode())
+		}
+	}
+	if len(subs) > 0 {
+		C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&subs)
+	}
 }

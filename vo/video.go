@@ -90,11 +90,17 @@ func (this *Video) Next() {
 }
 
 func (this *Video) Store() {
+	if this.Pn == 1 {
+		//更新数据库中上次扫面时间字段
+		C.Db.Save(&model.Video{Avid: this.Mid, LastUpdated: time.Now()})
+	}
 	if len(this.Data.List.Vlist) == 0 {
 		return
 	}
 	var videos []model.Video
 	if !this.Task.New {
+		//不是第一次扫
+		//每页检查一下是否扫到了上次已经扫了的部分
 		var avids []int
 		for _, v := range this.Data.List.Vlist {
 			avids = append(avids, v.Aid)
@@ -105,7 +111,12 @@ func (this *Video) Store() {
 		videos = make([]model.Video, 0)
 	}
 	for _, v := range this.Data.List.Vlist {
-		videos = append(videos, model.Video{Avid: v.Aid, LastUpdated: time.Unix(946656000, 0)})
+		if C.Db.Limit(1).Find(&model.Video{Avid: v.Aid}).RowsAffected == 0 {
+			videos = append(videos, model.Video{Avid: v.Aid, LastUpdated: time.Unix(946656000, 0)})
+			C.Q.Offer(NewInitTask(GetVideoFromUp, strconv.Itoa(v.Aid), false).Encode())
+		}
 	}
-	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&videos)
+	if len(videos) > 0 {
+		C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&videos)
+	}
 }
