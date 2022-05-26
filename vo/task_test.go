@@ -15,3 +15,15 @@ func TestTask(t *testing.T) {
 	}
 	println(string(marshal))
 }
+
+func TestTask_AllowDerivation(t *testing.T) {
+	task := Task{
+		TaskType:   GetCommentsFromVideo,
+		Derivation: "0",
+	}
+	println(task.AllowDerivation())
+	task.Derivation = "0;1;2"
+	println(task.AllowDerivation())
+	task.Derivation = "1;2"
+	println(task.AllowDerivation())
+}

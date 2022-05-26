@@ -39,14 +39,22 @@ func init() {
 }
 
 func GetAllNames() ([]string, error) {
-	input := &lambda.ListFunctionsInput{}
-	functions, err := lbd.ListFunctions(input)
-	if err != nil {
-		return nil, err
-	}
 	var names []string
-	for _, v := range functions.Functions {
-		names = append(names, *v.FunctionName)
+	var marker *string
+	for {
+		input := &lambda.ListFunctionsInput{Marker: marker}
+		functions, err := lbd.ListFunctions(input)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range functions.Functions {
+			names = append(names, *v.FunctionName)
+		}
+		if functions.NextMarker != nil {
+			marker = functions.NextMarker
+		} else {
+			break
+		}
 	}
 	return names, nil
 }

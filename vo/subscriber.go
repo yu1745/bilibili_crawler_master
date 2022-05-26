@@ -1,8 +1,6 @@
 package vo
 
 import (
-	"bytes"
-	"encoding/json"
 	C "github.com/yu1745/bilibili_crawler_master/constant"
 	"github.com/yu1745/bilibili_crawler_master/model"
 	"gorm.io/gorm/clause"
@@ -26,31 +24,35 @@ type Subs struct {
 }
 
 func (this *Subs) Next() {
-	if this.Pn == 1 && this.Data.Total > this.Ps {
-		num := 1
-		if this.Data.Total%this.Ps == 0 {
-			num = this.Data.Total / this.Ps
-		} else {
-			num = this.Data.Total/this.Ps + 1
-		}
-		//取两个之中的较小值
-		if maxPageNumber < num {
-			num = maxPageNumber
-		}
-		for i := 2; i <= num; i++ {
-			u, err := url.Parse(this.Task.Payload)
-			if err != nil {
-				log.Println(err)
+	if this.Task.New {
+		//todo
+		panic("his.Task.New = true")
+	} else {
+		if this.HasNext != -1 {
+			if this.Pn == 1 && this.Data.Total > this.Ps {
+				num := 1
+				if this.Data.Total%this.Ps == 0 {
+					num = this.Data.Total / this.Ps
+				} else {
+					num = this.Data.Total/this.Ps + 1
+				}
+				//取两个之中的较小值
+				if maxPageNumber < num {
+					num = maxPageNumber
+				}
+				for i := 2; i <= num; i++ {
+					u, err := url.Parse(this.Task.Payload)
+					if err != nil {
+						log.Println(err)
+					}
+					q := u.Query()
+					q.Set("pn", strconv.Itoa(i))
+					u.RawQuery = q.Encode()
+					task := Task{TaskType: GetSubscribers, Payload: u.String()}
+					log.Printf("[GetSubscribers] id=%d page=%d\n", this.Mid, this.Pn)
+					C.Q.Offer(task.Encode())
+				}
 			}
-			q := u.Query()
-			q.Set("pn", strconv.Itoa(i))
-			u.RawQuery = q.Encode()
-			task := Task{TaskType: GetSubscribers, Payload: u.String()}
-			var buf bytes.Buffer
-			e := json.NewEncoder(&buf)
-			e.SetEscapeHTML(false)
-			err = e.Encode(&task)
-			C.Q.Offer(buf.Bytes())
 		}
 	}
 }
@@ -76,13 +78,17 @@ func (this *Subs) Store() {
 		}
 		subs = make([]model.Up, 0)
 	}
-	for _, v := range this.Data.List {
-		if C.Db.Limit(1).Find(&model.Up{UID: v.Mid}).RowsAffected == 0 {
-			subs = append(subs, model.Up{UID: v.Mid, LastScanned: time.Unix(946656000, 0)})
-			C.Q.Offer(NewInitTask(GetVideoFromUp, strconv.Itoa(v.Mid), false).Encode())
+	//派生
+	if this.Task.AllowDerivation() {
+		for _, v := range this.Data.List {
+			//todo 现在是判断有没有，以后要换成判断是否已经长时间没有采集过
+			if C.Db.Limit(1).Find(&model.Up{UID: v.Mid}).RowsAffected == 0 {
+				subs = append(subs, model.Up{UID: v.Mid, LastScanned: time.Unix(946656000, 0)})
+				C.Q.Offer(NewInitTask(GetVideoFromUp, strconv.Itoa(v.Mid), false).Encode())
+			}
 		}
-	}
-	if len(subs) > 0 {
-		C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&subs)
+		if len(subs) > 0 {
+			C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&subs)
+		}
 	}
 }

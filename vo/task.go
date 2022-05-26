@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 type TaskType int
+
+func (t TaskType) Equals(s string) bool {
+	return strconv.Itoa(int(t)) == s
+}
 
 const (
 	GetCommentsFromVideo TaskType = iota
@@ -17,9 +23,10 @@ const (
 )
 
 type Task struct {
-	TaskType TaskType `json:"TaskType"`
-	Payload  string   `json:"Payload"`
-	New      bool     `json:"new"`
+	TaskType   TaskType `json:"TaskType"`
+	Payload    string   `json:"Payload"`
+	New        bool     `json:"new"`
+	Derivation string   `json:"derivation"`
 }
 
 /*func (this *Task) getPayload() string {
@@ -83,4 +90,17 @@ func NewInitTask(taskType TaskType, target string, new bool) *Task {
 	default:
 		panic("Unrecognized task type")
 	}
+}
+
+func (this *Task) AllowDerivation() bool {
+	if this.Derivation == "" {
+		return false
+	}
+	split := strings.Split(this.Derivation, ";")
+	for _, v := range split {
+		if this.TaskType.Equals(v) {
+			return true
+		}
+	}
+	return false
 }

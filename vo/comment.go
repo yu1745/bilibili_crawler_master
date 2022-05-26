@@ -134,17 +134,21 @@ func (this *MainComment) Store() {
 		})
 	}
 	C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cmts)
-	var users []model.User
-	for _, v := range this.Data.Replies {
-		if C.Db.Limit(1).Find(&model.User{UID: v.Mid}).RowsAffected == 0 {
-			users = append(users, model.User{
-				UID:         v.Mid,
-				LastScanned: time.Unix(946656000, 0),
-			})
-			C.Q.Offer(NewInitTask(GetSubscribers, strconv.Itoa(v.Mid), false).Encode())
+	//派生
+	if this.Task.AllowDerivation() {
+		var users []model.User
+		for _, v := range this.Data.Replies {
+			//todo 现在是判断有没有，以后要换成判断是否已经长时间没有采集过
+			if C.Db.Limit(1).Find(&model.User{UID: v.Mid}).RowsAffected == 0 {
+				users = append(users, model.User{
+					UID:         v.Mid,
+					LastScanned: time.Unix(946656000, 0),
+				})
+				C.Q.Offer(NewInitTask(GetSubscribers, strconv.Itoa(v.Mid), false).Encode())
+			}
 		}
-	}
-	if len(users) > 0 {
-		C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&users)
+		if len(users) > 0 {
+			C.Db.Clauses(clause.OnConflict{DoNothing: true}).Create(&users)
+		}
 	}
 }
